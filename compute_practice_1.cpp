@@ -9,6 +9,7 @@
 double g_u[502][502];
 double g_l[502][502];
 double g_mat_a[502], g_mat_b, g_mat_c;
+int * g_init_vec;
 
 template<class T>inline T max(const T& a, const T& b)
 {
@@ -19,6 +20,15 @@ template<class T>inline T min(const T& a, const T& b)
 	return a <= b ? a : b;
 }
 
+void setInitVec(int x)
+{
+	for (int i = 0; i < 502; i++)
+	{
+		g_init_vec[i] = 0;
+	}
+	g_init_vec[x] = 1;
+}
+
 void init()
 {
 	int i;
@@ -26,7 +36,10 @@ void init()
 	g_mat_c = -0.064;
 	for (i = 1; i <= 501; i++)
 		g_mat_a[i] = (1.64 - 0.024*i)*sin(0.2*i) - 0.64*exp(0.1 / i);
+	g_init_vec = (int*)malloc(sizeof(int) * 502);
+	setInitVec(1);
 }
+
 
 inline double getValue(int i, int j)
 {
@@ -53,10 +66,9 @@ double powerMethod(double offset)
 	double beta_k = 0, beta_k_1 = 0, n = 0;
 	for (i = 1; i <= 501; i++)
 	{
-		u[i] = 1;
+		u[i] = g_init_vec[i];
 		y[i] = 0;
 	}
-
 	for (int k = 1; k <= 10000; k++)
 	{
 		n = 0;
@@ -75,8 +87,9 @@ double powerMethod(double offset)
 		beta_k = 0;
 		for (i = 1; i <= 501; i++)
 			beta_k += y[i] * u[i];
+		
 		if (k > 1 && fabs((beta_k_1 - beta_k) / (beta_k)) <= 1e-12)
-			break;
+			break;	
 	}
 	return (beta_k + offset);
 }
@@ -147,7 +160,7 @@ double inversePowerMethod(double offset)
 	LUDivision(offset);
 	for (i = 1; i <= 501; i++)
 	{
-		u[i] = 1;
+		u[i] = g_init_vec[i];
 		y[i] = 0;
 	}
 	for (int k = 1; k <= 10000; k++)
@@ -175,15 +188,12 @@ int main()
 	int i, k;
 	double lambda_temp_1, lambda_temp_2, lambda_1, lambda_501, lambda_s, mig_u[40], det;
 	double lambdai[40];
-	init();
-	
+	init();	
 	lambda_temp_1 = powerMethod(0);
 	lambda_temp_2 = powerMethod(lambda_temp_1);
-
 	lambda_1 = min(lambda_temp_1, lambda_temp_2);
 	lambda_501 = max(lambda_temp_1, lambda_temp_2);	
 	lambda_s = inversePowerMethod(0);
-
 	det = 1;
 	for (i = 1; i <= 501; i++)
 		det *= g_u[i][i];
@@ -192,21 +202,29 @@ int main()
 		mig_u[k] = lambda_1 + k*(lambda_501 - lambda_1) / 40;	
 		lambdai[k] = inversePowerMethod(mig_u[k]);
 	}
-
-	printf("-----------Result-------------\n");
-	printf("--question 1\n");
+	printf("------------------------------\n");
+	printf("-          Result            -\n");
+	printf("------------------------------\n");
+	printf("--       question 1         --\n");
 	printf("¦Ë1=%1.11e\n", lambda_1);
 	printf("¦Ë501=%1.11e\n", lambda_501);
 	printf("¦Ës=%1.11e\n", lambda_s);
-
-	printf("\n--question 2\n");
+	printf("--       question 2         --\n");
 	for (k = 1; k <= 39; k++)	
 		printf("¦Ëi%d=%1.11e \n", k, lambdai[k]);
-
-	printf("\n--question 3\n");
+	printf("--       question 3         --\n");
 	printf("cond(A)=%1.11e\n", fabs(lambda_temp_1 / lambda_s));
-	printf("detA=%1.11e \n", det);
-	
+	printf("detA=%1.11e \n", det);	
+	FILE *fp;	
+	for (int i = 1; i < 502; i++)
+	{
+		printf("i = %d \n", i);
+		fp = fopen("question4result.txt", "at");
+		setInitVec(i);
+		lambda_temp_1 = powerMethod(0);
+		fprintf(fp, "%.12f\n", lambda_temp_1);
+		fclose(fp);
+	}	
 	system("pause");
 	return 0;
 }
